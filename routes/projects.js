@@ -1,7 +1,7 @@
-const { PROJECTS, TASKS, findTasksByProject, findManager, fillProjectDetails } = require('../db.js');
+const { PROJECTS, TASKS, findTasksByProject, findManager, fillProjectDetails, ROLES } = require('../db.js');
 const { populateProject } = require('../middleware/data.js');
+const { canViewProject } = require('../permission.js');
 const router = require('express').Router();
-
 
 router.get('/', (req, res) => {
     const detailedProjects = PROJECTS.map(project => {
@@ -16,9 +16,17 @@ router.get('/', (req, res) => {
     res.json(detailedProjects);
 });
 
-router.get('/:id', populateProject, (req, res) => {
+router.get('/:id', populateProject, authViewProject, (req, res) => {
     res.json(fillProjectDetails(req.project));
 });
+
+// authViewProject is a middleware and canViewProject is a function or logic that checks if the user has the permission to view the project.
+function authViewProject(req, res, next) {
+    if (!canViewProject(req.project, req.user)) {
+        return res.status(403).json({ message: "Not Allowed" });
+    }
+    next();
+}
 
 router.post('/', (req, res) => {
     const { name, managerId } = req.body;
